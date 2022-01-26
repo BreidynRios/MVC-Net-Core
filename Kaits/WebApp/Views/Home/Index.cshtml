@@ -1,0 +1,127 @@
+﻿@{
+    ViewData["Title"] = "Kaits";
+}
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+<h1 class="text-center display-4">Bienvenido</h1>
+<form>
+    <div class="form-group row">
+        <label class="col-sm-2 col-form-label">Cliente</label>
+        <div class="col-sm-10">
+            @Html.DropDownList("ddlCliente", (IEnumerable<SelectListItem>)ViewBag.Clientes, new {@class = "form-control select-filter" })
+        </div>
+    </div>
+    <div class="form-group row">
+        <label class="col-sm-2 col-form-label">Producto</label>
+        <div class="col-sm-10">
+            @Html.DropDownList("ddlProducto", (IEnumerable<SelectListItem>)ViewBag.Productos, new { @class = "form-control select-filter"})
+        </div>
+    </div>
+
+
+    <div class="form-group row">
+        <label class="col-sm-2 col-form-label">Cantidad</label>
+        <div class="col-sm-2">
+            <input type="text" class="form-control" id="txtCantidad">
+        </div>
+        <label class="col-sm-2 col-form-label">Precio</label>
+        <div class="col-sm-2">
+            <input type="text" class="form-control" id="txtPrecio">
+        </div>
+        <button type="button" class="btn btn-primary" id="btnAgregar">Agregar</button>
+    </div>
+
+    <div class="form-group row">
+        <div class="col-sm-12">
+            <table class="table table-hover" id="tbDetalle">
+                <thead class="thead-dark">
+                    <tr>
+                        <th scope="col">Cantidad</th>
+                        <th scope="col">Producto</th>
+                        <th scope="col">Precio Unitario</th>
+                        <th scope="col">SubTotal</th>
+                        <th scope="col"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="form-group row">
+        <button type="button" class="btn btn-success" id="btnGuardar">Guardar</button>
+    </div>
+</form>
+<script>
+
+    $(document).ready(function () {
+        var detail = [];
+        $('.select-filter').select2();
+
+        $('#tbDetalle').on('click', '.remove', function () {
+            var product = $(this).closest('tr').children(':eq(1)').text();
+            detail = $.grep(detail, function (item) {
+                return item.descripcion !== product;
+            });
+            $(this).closest('tr').remove();
+            console.log(detail);
+        });
+
+        $('#btnAgregar').on('click', function () {
+            var idProducto = $('#ddlProducto').select2('data')[0].id;
+            var exist = false;
+            $.each(detail, function (_, item) {
+                if ($.inArray(idProducto, item.codigoProducto) > -1) {
+                    exist = true;
+                    return false;
+                }
+            });
+
+            if (exist) return;
+
+            detail.push({
+                cantidad: parseFloat($('#txtCantidad').val()),
+                codigoProducto: parseInt($('#ddlProducto').select2('data')[0].id),
+                descripcion: $('#ddlProducto').select2('data')[0].text,
+                precio: parseFloat($('#txtPrecio').val())
+            });
+            var row = `<tr>
+                        <td>${$('#txtCantidad').val()}</td>
+                        <td>${$('#ddlProducto').select2('data')[0].text}</td>
+                        <td>${$('#txtPrecio').val()}</td>
+                        <td>${parseFloat($('#txtCantidad').val()) * parseFloat($('#txtPrecio').val())}</td>
+                        <td><button type="button" class="btn btn-danger btn-xs remove">x</button></td>
+                    <tr>`;
+            $('#tbDetalle tbody').append(row);
+            clearItem();
+        });
+
+        $('#btnGuardar').on('click', function () {
+            var data = {
+                codigoCliente: parseInt($('#ddlCliente').select2('data')[0].id),
+                detallePedido: detail
+            };
+
+            $.ajax({
+                contentType: 'application/json; charset=utf-8',
+                dataType: 'json',
+                type: 'POST',
+                async: true,
+                url: "/Home/SaveOrder",
+                data: JSON.stringify(data),
+                success: function (result) {
+                    alert(result);
+                },
+                error: function () {
+                    alert("Error!")
+                }
+            });
+        });
+
+        function clearItem() {
+            $('#txtCantidad').val('');
+            $('#txtPrecio').val('');
+        }
+    });
+</script>
